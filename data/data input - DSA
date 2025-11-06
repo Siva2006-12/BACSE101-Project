@@ -1,0 +1,32 @@
+import pandas as pd
+from sqlalchemy import create_engine
+
+course = pd.read_csv("DSA.csv", skiprows=2)
+pref = pd.read_csv("DSA - preference.csv")
+
+merged = pd.merge(course, pref, on='Name', how='inner')
+
+engine = create_engine("sqlite:///merged_dsa.db")
+merged.to_sql("dsa_table", engine, if_exists="replace", index=False)
+
+with engine.connect() as conn:
+    conn.execute("CREATE TABLE dsa_table_primary AS SELECT * FROM dsa_table;")
+    conn.execute("DROP TABLE dsa_table;")
+    conn.execute("""
+        CREATE TABLE dsa_table (
+            Name TEXT PRIMARY KEY,
+            [Slot Detail] TEXT,
+            Venue_x TEXT,
+            [Course Type] TEXT,
+            Preference INTEGER,
+            Slot TEXT,
+            Venue_y TEXT
+        );
+    """)
+    conn.execute("""
+        INSERT INTO dsa_table
+        SELECT Name, [Slot Detail], Venue_x, [Course Type], Preference, Slot, Venue_y
+        FROM dsa_table_primary;
+    """)
+    conn.execute("DROP TABLE dsa_table_primary;")
+
